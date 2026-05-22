@@ -2,7 +2,7 @@ package decoton.zzimkkong.slack;
 
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
-import com.slack.api.methods.client.MethodsClient;
+import com.slack.api.methods.MethodsClient;
 import com.slack.api.methods.response.users.UsersInfoResponse;
 import com.slack.api.model.event.AppMentionEvent;
 import decoton.zzimkkong.claude.ClaudeParserService;
