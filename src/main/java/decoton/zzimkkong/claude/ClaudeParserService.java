@@ -91,9 +91,13 @@ public class ClaudeParserService {
                     .retrieve()
                     .bodyToMono(JsonNode.class)
                     .map(node -> node.at("/content/0/text").asText())
-                    .map(ClaudeParserService::extractJson)
+                    .map(raw -> {
+                        log.info("Claude 원본 응답: {}", raw);
+                        return extractJson(raw);
+                    })
                     .block();
 
+            log.info("Claude 파싱 결과: {}", responseJson);
             return objectMapper.readValue(responseJson, ParsedIntent.class);
         } catch (WebClientResponseException e) {
             log.error("Claude API 오류 [{}]: {}", e.getStatusCode(), e.getResponseBodyAsString());
