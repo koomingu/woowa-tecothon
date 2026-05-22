@@ -151,9 +151,8 @@ public class ClaudeParserService {
 
         String parsedPassword = params.get("password");
         if (parsedPassword == null || parsedPassword.isBlank() || parsedPassword.equals("null")) {
-            String generated = String.format("%04d", (int) (Math.random() * 10000));
-            params.put("password", generated);
-            log.info("비밀번호 자동 생성: {}", generated);
+            params.put("password", "1234");
+            log.info("비밀번호 기본값 사용: 1234");
         } else {
             log.info("비밀번호 사용자 입력: {}", parsedPassword);
         }
