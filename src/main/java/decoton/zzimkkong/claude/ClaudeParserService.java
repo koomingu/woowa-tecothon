@@ -151,7 +151,11 @@ public class ClaudeParserService {
 
         String parsedPassword = params.get("password");
         if (parsedPassword == null || parsedPassword.isBlank() || parsedPassword.equals("null")) {
-            params.put("password", String.format("%04d", (int) (Math.random() * 10000)));
+            String generated = String.format("%04d", (int) (Math.random() * 10000));
+            params.put("password", generated);
+            log.info("비밀번호 자동 생성: {}", generated);
+        } else {
+            log.info("비밀번호 사용자 입력: {}", parsedPassword);
         }
 
         List<String> missing = parsed.missing().stream()
