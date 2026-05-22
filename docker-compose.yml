@@ -1,0 +1,11 @@
+services:
+  slack-bot:
+    build: .
+    environment:
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ZZIMKKONG_SHARING_MAP_ID=${ZZIMKKONG_SHARING_MAP_ID}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
