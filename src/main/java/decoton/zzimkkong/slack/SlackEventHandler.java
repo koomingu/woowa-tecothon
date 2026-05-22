@@ -2,7 +2,7 @@ package decoton.zzimkkong.slack;
 
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
-import com.slack.api.bolt.context.builtin.EventContext;
+import com.slack.api.methods.client.MethodsClient;
 import com.slack.api.methods.response.users.UsersInfoResponse;
 import com.slack.api.model.event.AppMentionEvent;
 import decoton.zzimkkong.claude.ClaudeParserService;
@@ -41,7 +41,7 @@ public class SlackEventHandler {
             String userMessage = payload.getEvent().getText();
             String sessionKey = channelId + "_" + userId;
 
-            String slackName = resolveSlackName(ctx, userId);
+            String slackName = resolveSlackName(ctx.client(), userId);
             String reply = processMessage(userMessage, slackName, sessionKey);
 
             ctx.say(reply);
@@ -55,7 +55,7 @@ public class SlackEventHandler {
             String channelId = req.getPayload().getChannelId();
             String sessionKey = channelId + "_" + userId;
 
-            String slackName = req.getPayload().getUserName();
+            String slackName = resolveSlackName(ctx.client(), userId);
 
             String reply = processMessage(userMessage, slackName, sessionKey);
             return ctx.ack(reply);
@@ -74,9 +74,9 @@ public class SlackEventHandler {
         return router.route(parsed, sessionKey);
     }
 
-    private String resolveSlackName(EventContext ctx, String userId) {
+    private String resolveSlackName(MethodsClient client, String userId) {
         try {
-            UsersInfoResponse userInfo = ctx.client().usersInfo(r -> r.user(userId));
+            UsersInfoResponse userInfo = client.usersInfo(r -> r.user(userId));
             String displayName = userInfo.getUser().getProfile().getDisplayName();
             return (displayName != null && !displayName.isBlank())
                     ? displayName

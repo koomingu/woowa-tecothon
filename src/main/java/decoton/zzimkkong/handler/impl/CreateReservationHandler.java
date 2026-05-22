@@ -98,7 +98,10 @@ public class CreateReservationHandler implements IntentHandler {
 
         String nameLower = spaceName.strip().toLowerCase();
         return spaceList.stream()
-                .filter(s -> ((String) s.get("name")).toLowerCase().contains(nameLower))
+                .filter(s -> {
+                    String sName = ((String) s.get("name")).toLowerCase();
+                    return sName.contains(nameLower) || nameLower.contains(sName);
+                })
                 .map(s -> ((Number) s.get("id")).intValue())
                 .findFirst()
                 .orElse(null);
