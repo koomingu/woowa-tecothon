@@ -45,7 +45,15 @@ public class ClaudeParserService {
             3. password: 4자리 숫자 문자열 (언급이 없으면 null)
             4. name: 예약자 이름 (언급이 없으면 null)
             5. description: 예약 목적 (언급이 없으면 null)
-            6. space_name: 공간 이름
+            6. space_name: 아래 예약 가능한 공간 목록 중 하나의 정확한 이름으로 설정하세요.
+               사용자가 "지구로", "지구에서" 처럼 조사를 붙여 말해도 공간 이름만 추출하세요.
+               사용자 입력이 아래 목록 중 하나와 유사하면 가장 가까운 이름으로 매핑하세요.
+
+               [예약 가능한 공간 목록]
+               11층: 금성, 수성, 지구, 화성
+               12층: 보이저, 아폴로, 디스커버리, 허블
+               13층: 은하수, 목성, 토성, 천왕성
+
             7. 필수 누락 검사: create_reservation 의도일 때 password, space_name, start_time 등이 메시지에 없다면 해당 파라미터 키워드를 missing 배열에 명시하세요.
 
             오늘 날짜(KST): {today}
