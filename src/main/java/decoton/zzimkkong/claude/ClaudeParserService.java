@@ -2,9 +2,12 @@ package decoton.zzimkkong.claude;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -17,6 +20,7 @@ import java.util.Map;
 @Service
 public class ClaudeParserService {
 
+    private static final Logger log = LoggerFactory.getLogger(ClaudeParserService.class);
     private static final String CLAUDE_API_URL = "https://api.anthropic.com/v1/messages";
 
     private static final String SYSTEM_PROMPT_TEMPLATE = """
@@ -87,10 +91,15 @@ public class ClaudeParserService {
                     .retrieve()
                     .bodyToMono(JsonNode.class)
                     .map(node -> node.at("/content/0/text").asText())
+                    .map(ClaudeParserService::extractJson)
                     .block();
 
             return objectMapper.readValue(responseJson, ParsedIntent.class);
+        } catch (WebClientResponseException e) {
+            log.error("Claude API 오류 [{}]: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return new ParsedIntent("unknown", Map.of(), List.of("parse_error"), userMessage);
         } catch (Exception e) {
+            log.error("Claude 파싱 실패: {}", e.getMessage(), e);
             return new ParsedIntent("unknown", Map.of(), List.of("parse_error"), userMessage);
         }
     }
@@ -147,6 +156,26 @@ public class ClaudeParserService {
                 .toList();
 
         return new ParsedIntent(parsed.intent(), params, missing, parsed.rawMessage());
+    }
+
+    private static String extractJson(String raw) {
+        if (raw == null) return "{}";
+        String text = raw.strip();
+        // ```json ... ``` 또는 ``` ... ``` 형태 제거
+        if (text.startsWith("```")) {
+            int start = text.indexOf('\n');
+            int end = text.lastIndexOf("```");
+            if (start >= 0 && end > start) {
+                text = text.substring(start + 1, end).strip();
+            }
+        }
+        // { ... } 범위만 추출
+        int jsonStart = text.indexOf('{');
+        int jsonEnd = text.lastIndexOf('}');
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            text = text.substring(jsonStart, jsonEnd + 1);
+        }
+        return text;
     }
 
     private String buildSystemPrompt() {

@@ -1,11 +1,14 @@
 package decoton.zzimkkong.zzimkkong;
 
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -86,18 +89,28 @@ public class ZzimkkongClient {
             String password, String name, String description
     ) {
         Map<String, Object> body = Map.of(
-                "startDatetime", startDatetime,
-                "endDatetime", endDatetime,
+                "startDateTime", startDatetime,
+                "endDateTime", endDatetime,
                 "password", password,
                 "name", name,
-                "description", description != null ? description : ""
+                "description", description != null && !description.isBlank() ? description : "예약"
         );
 
         return webClient.post()
                 .uri("/guests/maps/{mapId}/spaces/{spaceId}/reservations", mapId, spaceId)
                 .bodyValue(body)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {})
+                .toBodilessEntity()
+                .map(response -> {
+                    URI location = response.getHeaders().getLocation();
+                    Map<String, Object> result = new HashMap<>();
+                    if (location != null) {
+                        String path = location.getPath();
+                        String[] parts = path.split("/");
+                        result.put("reservationId", parts[parts.length - 1]);
+                    }
+                    return result;
+                })
                 .onErrorResume(WebClientResponseException.class, e ->
                         Mono.just(Map.of("error", e.getResponseBodyAsString(), "status", e.getStatusCode().value())))
                 .block();
