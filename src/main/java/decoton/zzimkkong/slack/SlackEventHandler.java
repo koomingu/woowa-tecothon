@@ -2,6 +2,7 @@ package decoton.zzimkkong.slack;
 
 import com.slack.api.bolt.App;
 import com.slack.api.bolt.AppConfig;
+import com.slack.api.bolt.context.builtin.EventContext;
 import com.slack.api.methods.response.users.UsersInfoResponse;
 import com.slack.api.model.event.AppMentionEvent;
 import decoton.zzimkkong.claude.ClaudeParserService;
@@ -33,6 +34,7 @@ public class SlackEventHandler {
     public App slackApp(@Value("${slack.bot-token}") String botToken) {
         App app = new App(AppConfig.builder().singleTeamBotToken(botToken).build());
 
+        // @멘션 처리
         app.event(AppMentionEvent.class, (payload, ctx) -> {
             String channelId = payload.getEvent().getChannel();
             String userId = payload.getEvent().getUser();
@@ -40,23 +42,39 @@ public class SlackEventHandler {
             String sessionKey = channelId + "_" + userId;
 
             String slackName = resolveSlackName(ctx, userId);
+            String reply = processMessage(userMessage, slackName, sessionKey);
 
-            ParsedIntent pending = sessionStore.get(sessionKey);
-            ParsedIntent parsed = (pending != null)
-                    ? claudeParser.parseWithContext(pending, userMessage, slackName)
-                    : claudeParser.parse(userMessage, slackName);
-
-            sessionStore.clear(sessionKey);
-
-            String reply = router.route(parsed, sessionKey);
             ctx.say(reply);
             return ctx.ack();
+        });
+
+        // /찜꽁 슬래시 커맨드 처리
+        app.command("/찜꽁", (req, ctx) -> {
+            String userMessage = req.getPayload().getText();
+            String userId = req.getPayload().getUserId();
+            String channelId = req.getPayload().getChannelId();
+            String sessionKey = channelId + "_" + userId;
+
+            String slackName = req.getPayload().getUserName();
+
+            String reply = processMessage(userMessage, slackName, sessionKey);
+            return ctx.ack(reply);
         });
 
         return app;
     }
 
-    private String resolveSlackName(com.slack.api.bolt.context.builtin.EventContext ctx, String userId) {
+    private String processMessage(String userMessage, String slackName, String sessionKey) {
+        ParsedIntent pending = sessionStore.get(sessionKey);
+        ParsedIntent parsed = (pending != null)
+                ? claudeParser.parseWithContext(pending, userMessage, slackName)
+                : claudeParser.parse(userMessage, slackName);
+
+        sessionStore.clear(sessionKey);
+        return router.route(parsed, sessionKey);
+    }
+
+    private String resolveSlackName(EventContext ctx, String userId) {
         try {
             UsersInfoResponse userInfo = ctx.client().usersInfo(r -> r.user(userId));
             String displayName = userInfo.getUser().getProfile().getDisplayName();
